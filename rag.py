@@ -3,6 +3,12 @@ import re
 from pprint import pprint
 from sentence_transformers import SentenceTransformer
 import numpy as np
+from google import genai
+import os 
+from dotenv import load_dotenv
+
+load_dotenv()
+api_key = os.getenv("GEMINI_API_KEY")
 #Loading a pretrained Sentence Transformer model
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 def clean_text(full_text):
@@ -40,54 +46,37 @@ def pdf_to_text(file_name):
 def chunk_text(text, chunk_size, overlap):
     text_list = []
     i = 0
+    #chunking text with overlap to maintain context
     while i < len(text):
-        print(f'Start {i}, End {i + chunk_size}')
         text_list.append( text[i:i+chunk_size])
         i = i + (chunk_size - overlap)
     return text_list
 
-def embed_chunks(chunks):
-    #Loading a pretrained Sentence Transformer model
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    # 2. Calculate embeddings by calling model.encode()
+def embed_chunks(chunks,model):
+    '''Convert text to vector embeddings'''
+    # Calculate embeddings by calling model.encode()
     embeddings = model.encode(chunks)
-    print(embeddings.shape)
-    # print(embeddings)
+    #Store text-embedding pairs 
     chunk_embs = [{"text": chunk, "embeddings": embedding} for chunk,embedding in zip(chunks,embeddings)]
     return chunk_embs
 
+
 def search(question, chunk_embs, model, k=5):
-    
+    #embedding question to a vector
     q_embedding = model.encode(question)
-    # print(q_embedding.shape)
-    embeddings = []
-    
-    for item in chunk_embs:
-        embeddings.append(item['embeddings'])
-    
+    #storing embeddings separately
+    embeddings = [item['embeddings'] for item in chunk_embs]
     sim = model.similarity(q_embedding,embeddings) #gives similarity scores
-    
     indices = np.argsort(-sim) #finding the arrays with highest similarity values
-    
     return [{'text':chunk_embs[i]['text'], 'score': sim[0,i].item()} for i in indices[0,:k]]
 
 
 
-
+#initialising 
 file_name = "Warrington-JugglingProbabilities-2005.pdf"
 text = pdf_to_text(file_name)
 cleaned_text = clean_text(text)
-chunk_embs = chunk_text(cleaned_text,200,50)
-
-#shape of first embedding
-print(chunk_embs[0]['embeddings'].shape)
-print(chunk_embs[0]['embeddings'][:5])
-#printing embedding values
-for item in chunk_embs:
-    if 'Markov chain' in item['text']:
-        numbers = item['embeddings'][:5]
-        print(numbers)
-        break
+chunk_embs = embed_chunks(chunk_text(cleaned_text, 200, 50),model)
 
 #testing the results of search function
 for q in [
@@ -100,3 +89,13 @@ for q in [
     results = search(q, chunk_embs, model, k=3)
     for r in results:
         print(f"  ----{r['score']:.3f}--- | {r['text'][:100]}")
+
+        
+
+# The client gets the API key from the environment variable `GEMINI_API_KEY`.
+client = genai.Client()
+
+response = client.models.generate_content(
+    model="gemini-3-flash-preview", contents="Explain how AI works in a few words"
+)
+print(response.text)
