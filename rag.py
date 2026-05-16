@@ -4,11 +4,13 @@ from pprint import pprint
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from google import genai
+from google.genai import types
 import os 
 from dotenv import load_dotenv
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
+
 #Loading a pretrained Sentence Transformer model
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 def clean_text(full_text):
@@ -25,7 +27,7 @@ def clean_text(full_text):
             continue
         else: #adds items back to list
             text_list.append(line)
-    pprint(text_list)
+    
     cleaned_text = "\n".join(text_list)
     return cleaned_text
 
@@ -38,7 +40,6 @@ def pdf_to_text(file_name):
         # Loop through all pages
         for page in reader.pages: #page is an object of pageobject class
             page_text = page.extract_text()
-            print(f"Printed page number {page.page_number} and added {len(page_text)} characters")
             full_text+=" \n" + page_text
     return full_text
 
@@ -65,37 +66,39 @@ def search(question, chunk_embs, model, k=5):
     #embedding question to a vector
     q_embedding = model.encode(question)
     #storing embeddings separately
-    embeddings = [item['embeddings'] for item in chunk_embs]
+    embeddings = np.array([item['embeddings'] for item in chunk_embs]) #stacks into 2d array
     sim = model.similarity(q_embedding,embeddings) #gives similarity scores
     indices = np.argsort(-sim) #finding the arrays with highest similarity values
     return [{'text':chunk_embs[i]['text'], 'score': sim[0,i].item()} for i in indices[0,:k]]
 
+def build_prompt(question, retrieved_chunks):
+    '''Pulls out text from retrieved chunks and applies context and question headers to final string'''
+    text_list = [item['text'] for item in retrieved_chunks]
+    return 'Context: ' + '---\n---'.join(text_list) + '---\n---' 'Question: ' + question
 
+def ask_llm(question, retrieved_chunks,client):
+    response = client.models.generate_content(
+        model="gemini-3-flash-preview",
+        config=types.GenerateContentConfig(
+            system_instruction="You are a helpful assistant. Use only the provided context to answer the user's question. If the context does not contain the answer, say so honestly"),
+        contents=build_prompt(question, retrieved_chunks)
+    )
+    return response.text
 
 #initialising 
 file_name = "Warrington-JugglingProbabilities-2005.pdf"
 text = pdf_to_text(file_name)
 cleaned_text = clean_text(text)
-chunk_embs = embed_chunks(chunk_text(cleaned_text, 200, 50),model)
+chunk_embs = embed_chunks(chunk_text(cleaned_text, 800, 100),model)
 
-#testing the results of search function
-for q in [
-    "What is a Markov chain?",
-    "Who is the author?",
-    "How does juggling work?",
-    "Banana sandwich recipe",
-]:
-    print(f"\n=== {q} ===")
-    results = search(q, chunk_embs, model, k=3)
-    for r in results:
-        print(f"  ----{r['score']:.3f}--- | {r['text'][:100]}")
+client = genai.Client()  # once, outside the loop
 
-        
-
-# The client gets the API key from the environment variable `GEMINI_API_KEY`.
-client = genai.Client()
-
-response = client.models.generate_content(
-    model="gemini-3-flash-preview", contents="Explain how AI works in a few words"
-)
-print(response.text)
+while True:
+    q = input("\nAsk a question (or 'quit'): ").strip()
+    if q.lower() == "quit":
+        break
+    if not q:
+        continue
+    results = search(q, chunk_embs, model, k=5)
+    answer = ask_llm(q, results,client)
+    print("\n" + answer)
