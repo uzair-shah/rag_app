@@ -5,11 +5,9 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 from google import genai
 from google.genai import types
-import os 
 from dotenv import load_dotenv
 
 load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
 
 #Loading a pretrained Sentence Transformer model
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
@@ -36,7 +34,7 @@ def pdf_to_text(file_name):
     full_text = ''
     with open(file_name,"rb") as file:
         reader = PdfReader(file)
-        number_of_pages = len(reader.pages)
+        
         # Loop through all pages
         for page in reader.pages: #page is an object of pageobject class
             page_text = page.extract_text()
@@ -74,7 +72,9 @@ def search(question, chunk_embs, model, k=5):
 def build_prompt(question, retrieved_chunks):
     '''Pulls out text from retrieved chunks and applies context and question headers to final string'''
     text_list = [item['text'] for item in retrieved_chunks]
-    return 'Context: ' + '---\n---'.join(text_list) + '---\n---' 'Question: ' + question
+    context = "\n---\n".join(text_list)
+    return f"Context:\n{context}\n\nQuestion: {question}"
+    
 
 def ask_llm(question, retrieved_chunks,client):
     response = client.models.generate_content(
