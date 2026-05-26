@@ -3,3 +3,5 @@ sentence-transformers
 numpy
 google-genai
 python-dotenv
+ollama
+ipykernel

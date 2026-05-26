@@ -1,0 +1,194 @@
+[
+    {
+        "question": "Who is the author of this paper?",
+        "category": "easy_factual",
+        "expected_keywords": [
+            "Warrington",
+            "Gregory"
+        ],
+        "should_answer": true
+    },
+    {
+        "question": "What year was the paper published?",
+        "category": "easy_factual",
+        "expected_keywords": [
+            "2005",
+            "February"
+        ],
+        "should_answer": true
+    },
+    {
+        "question": "What are the references",
+        "category": "metadata",
+        "expected_keywords": [
+            "Buhler",
+            "Kemeny",
+            "jugglingdb",
+            "Eisenbud",
+            "Graham",
+            "Ehrenborg",
+            "Kamstra"
+        ],
+        "should_answer": true,
+        "refusal_keywords": [
+            "does not",
+            "doesn't",
+            "no information",
+            "not provided",
+            "not in the context"
+        ]
+    },
+    {
+        "question": "How many pages are there?",
+        "category": "metadata",
+        "expected_keywords": [
+            "14",
+            "15"
+        ],
+        "should_answer": true,
+        "refusal_keywords": [
+            "does not",
+            "doesn't",
+            "no information",
+            "not provided",
+            "not in the context"
+        ]
+    },
+    {
+        "question": "What is a markov chain",
+        "category": "definition",
+        "expected_keywords": [
+            "discrete time",
+            "random",
+            "transition",
+            "probabilities"
+        ],
+        "should_answer": true,
+        "refusal_keywords": [
+            "does not",
+            "doesn't",
+            "no information",
+            "not provided",
+            "not in the context"
+        ]
+    },
+    {
+        "question": "What is the juggling process",
+        "category": "definition",
+        "expected_keywords": [
+            "throw",
+            "ball",
+            "hand"
+        ],
+        "should_answer": true,
+        "refusal_keywords": [
+            "does not",
+            "doesn't",
+            "no information",
+            "not provided",
+            "not in the context"
+        ]
+    },
+    {
+        "question": "What is theorem 1, explain it?",
+        "category": "detail",
+        "expected_keywords": [
+            "juggling",
+            "balls",
+            "fraction",
+            "V",
+            "S_t_{h,f}",
+            "binom{h+1}{f+1}",
+            "b balls",
+            "writing f",
+            "h-b",
+            "h+1/f+1"
+        ],
+        "should_answer": true,
+        "refusal_keywords": [
+            "does not",
+            "doesn't",
+            "no information",
+            "not provided",
+            "not in the context"
+        ]
+    },
+    {
+        "question": "What are the differences between the standard model and the add-drop model?",
+        "category": "synthesis",
+        "expected_keywords": [
+            "generalizes standard juggling",
+            "assistant helping",
+            "removing restriction on v_1",
+            "height 0",
+            "add",
+            "insert"
+        ],
+        "should_answer": true,
+        "refusal_keywords": [
+            "does not",
+            "doesn't",
+            "no information",
+            "not provided",
+            "not in the context"
+        ]
+    },
+    {
+        "question": "What's the main idea?",
+        "category": "tricky_semantic",
+        "expected_keywords": [
+            "random",
+            "fraction",
+            "time"
+        ],
+        "should_answer": true,
+        "refusal_keywords": [
+            "does not",
+            "doesn't",
+            "no information",
+            "not provided",
+            "not in the context"
+        ]
+    },
+    {
+        "question": "Who first considered the juggling state graph?",
+        "category": "specific_question",
+        "expected_keywords": [
+            "Boyce"
+        ],
+        "should_answer": true,
+        "refusal_keywords": [
+            "does not",
+            "doesn't",
+            "no information",
+            "not provided",
+            "not in the context"
+        ]
+    },
+    {
+        "question": "Banana sandwich recipe",
+        "category": "negative",
+        "expected_keywords": [],
+        "should_answer": false,
+        "refusal_keywords": [
+            "does not",
+            "doesn't",
+            "no information",
+            "not provided",
+            "not in the context"
+        ]
+    },
+    {
+        "question": "Did the egg come before the chicken?",
+        "category": "negative",
+        "expected_keywords": [],
+        "should_answer": false,
+        "refusal_keywords": [
+            "does not",
+            "doesn't",
+            "no information",
+            "not provided",
+            "not in the context"
+        ]
+    }
+]
