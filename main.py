@@ -16,6 +16,7 @@ import chromadb
 import datetime
 
 
+
 load_dotenv()
 
 #Loading a pretrained Sentence Transformer model
@@ -99,7 +100,7 @@ def ask_llm_gemini(question, retrieved_chunks, client, max_retries=3):
     prompt = build_prompt(question, retrieved_chunks)
     
     for attempt in range(max_retries):
-        time.sleep(20)
+        time.sleep(10)
         try:
             response = client.models.generate_content(
                 model="gemini-3-flash-preview",
@@ -126,95 +127,43 @@ def ask_llm_deep_seek(question, retrieved_chunks,model='deepseek-r1'):
         )
     return response.message.content
 
-def score_query(test_query, answer):
-    answer_lower = answer.lower()
-    
-    if test_query["should_answer"]:
-        # Positive test: look for any expected keyword in the answer
-        matches = [kw for kw in test_query["expected_keywords"] 
-                   if kw.lower() in answer_lower]
-        passed = len(matches) > 0
-        if passed:
-            reason = f"found keywords: {matches}"
-        else:
-            reason = f"missing all expected keywords: {test_query['expected_keywords']}"
-    else:
-        # Negative test: look for any refusal phrase in the answer
-        refusals = [kw for kw in test_query["refusal_keywords"] 
-                    if kw.lower() in answer_lower]
-        passed = len(refusals) > 0
-        if passed:
-            reason = f"refused with: {refusals}"
-        else:
-            reason = "did not refuse"
-    
-    return {
-        "question": test_query["question"],
-        "category": test_query["category"],
-        "answer": answer,
-        "passed": passed,
-        "reason": reason,
-    }
 
-def run_eval(test_queries, chunk_embs, model, client, agent='gemini'):
-    """Run all test queries through the pipeline. Return list of result dicts."""
-    # For each query: call search → ask_llm → score_query → collect
-    eval_results = []
-    for query in test_queries:
-    
-        question = query['question']
-        results = search(question, chunk_embs, model, k=3)
-        start_time = time.perf_counter()
-        
-        if agent == 'gemini':
-            answer = ask_llm_gemini(question, results,client)
-        else:
-            answer = ask_llm_deep_seek(question, results)
-        end_time = time.perf_counter()
-        
-        if agent == 'gemini':
-            elapsed_time = end_time - start_time - 20 #account for sleep time in gemini call
-        else:
-            elapsed_time = end_time - start_time #time taken to 
-        print(f"LLM response time: {elapsed_time:.4f} seconds")
 
-        score_result = score_query(query,answer)
-        eval_results.append(score_result)
-        print(f"[{len(eval_results)}/{len(test_queries)}] {'Correct' if score_result['passed'] else 'Incorrect'} {question}")
-    return eval_results
+class Question(BaseModel):
+    question: str
 
-def print_summary(results):
-    """Pretty-print the results: per-query + overall + per-category."""
-    for result in results:
-        pprint(f"Question: {result['question']}")
-        pprint(f"Category: {result['category']}")
-        pprint(f"Passed: {result['passed']}")
-        pprint(f"Answer: {result['answer']}")
+class Answer(BaseModel):
+    answer: str 
+    # source: list[str]
 
-#initialising 
 file_name = "Warrington-JugglingProbabilities-2005.pdf"
 text = pdf_to_text(file_name)
 cleaned_text = clean_text(text)
 collection = embed_chunks(chunk_text(cleaned_text, 800, 100),model)
-results = search('what is a juggling process?', collection, model)
 
-with open('test_queries.txt', 'r', encoding='utf-8') as f:
-    test_queries = json.load(f)
+app = FastAPI()
 
-client = genai.Client()  #loading gemini 
-eval_results_gemini = run_eval(test_queries, chunk_embs, model, client)
-eval_results_deepseek = run_eval(test_queries, chunk_embs, model, client, agent = 'deep_seek')
-print_summary(eval_results_deepseek)
+@app.post("/ask/")
+async def ask_question(question: Question):
+    
+    q = question.question
+    results = search(q, collection, model)
+    client = genai.Client()  #loading gemini 
+    response = ask_llm_gemini(q,results, client)
+    
+    return Answer(answer = response)
 
-# while True:
-#     q = input("\nAsk a question (or 'quit'): ").strip()
-#     if q.lower() == "quit":
-#         break
-#     if not q:
-#         continue
-#     results = search(q, chunk_embs, model, k=5)
-#     answer = ask_llm_gemini(q, results,client)
-#     print("\n" + answer)
+#initialising 
+# file_name = "Warrington-JugglingProbabilities-2005.pdf"
+# text = pdf_to_text(file_name)
+# cleaned_text = clean_text(text)
+# collection = embed_chunks(chunk_text(cleaned_text, 800, 100),model)
+# question = 'what is a juggling process?'
+# results = search(question, collection, model)
+
+# client = genai.Client()  #loading gemini 
+# response = ask_llm_gemini(question,results, client)
+# print(response)
 
 
 
